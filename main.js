@@ -3,14 +3,12 @@ var bodyParser = require('body-parser');
 var request = require('request');
 var app = express();
 
-var config = require('./config.json');
-
 var crearFolder = function (folder) {
     request({
         method: 'POST',
         uri: 'https://api.dropboxapi.com/2/files/create_folder',
         headers: {
-            'Authorization': 'Bearer ' + config.dropbox_key,
+            'Authorization': 'Bearer ' + process.env.GITHUB,
             'Content-type': 'application/json'
         },
         body: JSON.stringify({path: folder})
@@ -37,6 +35,6 @@ app.post('/recibe', function (req, res) {
     res.status(200).end();
 });
 
-app.listen(18131, function () {
+app.listen(80, function () {
     console.log('Starting');
 });
