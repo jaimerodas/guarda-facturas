@@ -54,9 +54,10 @@ var crearArchivo = function (bin, path) {
 app.use(bodyParser.json({limit: '10mb'}));
 
 app.post('/recibe', function (req, res) {
-    // console.log(req.body);
+    console.log("Recibimos nuevo correo");
 
     if (req.body.Attachments.length > 0) {
+        console.log("El correo tiene attachments");
         var fecha, rfc, folder,
         save = [];
 
@@ -64,6 +65,7 @@ app.post('/recibe', function (req, res) {
             var file, text;
 
             if (att.ContentType == 'text/xml') {
+                console.log("Hay un xml");
                 file = new Buffer(att.Content, 'base64');
                 text = file.toString();
 
@@ -79,6 +81,7 @@ app.post('/recibe', function (req, res) {
             }
 
             if (att.ContentType == 'application/pdf') {
+                console.log("Hay un pdf");
                 file = new Buffer(att.Content, 'base64');
 
                 save.push({
@@ -96,6 +99,9 @@ app.post('/recibe', function (req, res) {
                 var path = definePath(fecha, rfc, a.extension, folder);
                 crearArchivo(a.bin, path);
             });
+        } else {
+            console.log("No pudimos parsear ningún xml");
+            console.log(req.body.Attachments);
         }
     }
 
