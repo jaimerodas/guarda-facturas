@@ -24,6 +24,8 @@ var crearFolder = function (folder) {
 app.use(bodyParser.json());
 
 app.post('/recibe', function (req, res) {
+    console.log(req.body);
+
     fecha = new Date(req.body.Date);
     mes = fecha.getMonth() + 1;
 
