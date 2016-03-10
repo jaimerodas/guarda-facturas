@@ -7,6 +7,10 @@
     "test": "node main.js"
   },
   "author": "Jaime Rodas",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jaimerodas/guarda-facturas.git"
+  },
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.15.0",
