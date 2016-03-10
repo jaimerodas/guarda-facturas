@@ -3,14 +3,16 @@ var bodyParser = require('body-parser');
 var request = require('request');
 var app = express();
 
-app.set('port', (process.env.PORT || 5000));
+var config = require('./config.json');
+
+app.set('port', (config.port || 5000));
 
 var crearFolder = function (folder) {
     request({
         method: 'POST',
         uri: 'https://api.dropboxapi.com/2/files/create_folder',
         headers: {
-            'Authorization': 'Bearer ' + process.env.GITHUB,
+            'Authorization': 'Bearer ' + config.github_key,
             'Content-type': 'application/json'
         },
         body: JSON.stringify({path: folder})
