@@ -21,7 +21,7 @@ var crearFolder = function (folder) {
     });
 };
 
-app.use(bodyParser.json());
+app.use(bodyParser.json({limit: '10mb'}));
 
 app.post('/recibe', function (req, res) {
     console.log(req.body);
