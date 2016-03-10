@@ -3,6 +3,8 @@ var bodyParser = require('body-parser');
 var request = require('request');
 var app = express();
 
+app.set('port', (process.env.PORT || 5000));
+
 var crearFolder = function (folder) {
     request({
         method: 'POST',
@@ -35,6 +37,6 @@ app.post('/recibe', function (req, res) {
     res.status(200).end();
 });
 
-app.listen(80, function () {
-    console.log('Starting');
+app.listen(app.get('port'), function () {
+    console.log('Iniciando en puerto ' + app.get('port'));
 });
