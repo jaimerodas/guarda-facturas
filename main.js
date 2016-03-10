@@ -64,7 +64,7 @@ app.post('/recibe', function (req, res) {
         req.body.Attachments.forEach(function(att){
             var file, text;
 
-            if (att.ContentType == 'text/xml') {
+            if (att.ContentType == 'text/xml' || att.ContentType == 'application/xml') {
                 console.log("Hay un xml");
                 file = new Buffer(att.Content, 'base64');
                 text = file.toString();
