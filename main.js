@@ -11,7 +11,11 @@ app.set('port', (config.port || 5000));
 
 var defineFolder = function(date) {
     var mes = date.getMonth() + 1;
-    mes = mes[1] ? mes : '0' + mes;
+
+    if (mes.toString().length == 1) {
+        mes = "0" + mes;
+    }
+
     return '/' + date.getFullYear() + '-' + mes;
 };
 
