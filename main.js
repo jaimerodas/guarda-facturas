@@ -68,8 +68,9 @@ app.post('/recibe', function (req, res) {
         req.body.Attachments.forEach(function(att){
             var file, text;
 
+            console.log("Hay un: " + att.ContentType);
+
             if (att.ContentType == 'text/xml' || att.ContentType == 'application/xml') {
-                console.log("Hay un xml");
                 file = new Buffer(att.Content, 'base64');
                 text = file.toString();
 
@@ -85,7 +86,6 @@ app.post('/recibe', function (req, res) {
             }
 
             if (att.ContentType == 'application/pdf') {
-                console.log("Hay un pdf");
                 file = new Buffer(att.Content, 'base64');
 
                 save.push({
