@@ -28,7 +28,7 @@ var crearFolder = function (folder) {
         method: 'POST',
         uri: 'https://api.dropboxapi.com/2/files/create_folder',
         headers: {
-            'Authorization': 'Bearer ' + config.github_key,
+            'Authorization': 'Bearer ' + config.dropbox_key,
             'Content-type': 'application/json'
         },
         body: JSON.stringify({path: folder})
@@ -42,7 +42,7 @@ var crearArchivo = function (bin, path) {
         method: 'POST',
         uri: 'https://content.dropboxapi.com/2/files/upload',
         headers: {
-            'Authorization': 'Bearer ' + config.github_key,
+            'Authorization': 'Bearer ' + config.dropbox_key,
             'Dropbox-API-Arg': JSON.stringify({
                 path: path,
                 autorename: true
