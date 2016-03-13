@@ -3,77 +3,70 @@ var bodyParser = require('body-parser');
 var request = require('request');
 var parseString = require('xml2js').parseString;
 
-var app = express();
-
 var path,
-save = [],
-config = require('./config.json');
+    app = express(),
+    save = [],
+    config = require('./config.json');
 
-function definePath(fecha, rfc) {
-    var mes = fecha.getMonth() + 1;
-    if (mes.toString().length == 1) {
-        mes = "0" + mes;
-    }
-    return '/' + fecha.getFullYear() + '-' + mes + '/' + Math.round(fecha.getTime()/1000, 0) + '-' + rfc + '.';
-}
-
-function createFile(file, index, array) {
+function createFile(f) {
     request({
         method: 'POST',
         uri: 'https://content.dropboxapi.com/2/files/upload',
         headers: {
             'Authorization': 'Bearer ' + config.dropbox_key,
             'Dropbox-API-Arg': JSON.stringify({
-                path: path + file.extension,
+                path: path + f.ext,
                 autorename: true
             }),
             'Content-type': 'application/octet-stream'
         },
-        body: file.bin
+        body: f.bin
     }, function (e, r, b) {
         if (e) {
-            console.log(e,b);
+            console.log(e, b);
         } else {
-            b = JSON.parse(b);
-            console.log("Creamos el archivo: " + b.path_display);
+            console.log("Creamos el archivo: " + JSON.parse(b).path_display);
         }
     });
 }
 
-function processFile(content, extension) {
-    var file, text;
+function processXML(f) {
+    parseString(f.toString(), function (e, r) {
+        var fecha = new Date(r['cfdi:Comprobante'].$.fecha),
+            rfc = r['cfdi:Comprobante']['cfdi:Emisor'][0].$.rfc;
 
-    file = new Buffer(content, 'base64');
-    text = file.toString();
+        if (!rfc || !fecha) {
+            return false;
+        }
 
-    save.push({
-        extension: extension,
-        bin: file
+        var mes = fecha.getMonth() + 1;
+
+        if (mes.toString().length == 1) {
+            mes = "0" + mes;
+        }
+
+        path = '/' + fecha.getFullYear() + '-' + mes + '/' + Math.round(fecha.getTime()/1000, 0) + '-' + rfc + '.';
     });
-
-    if (extension == 'xml') {
-        parseString(text, function (err, result) {
-            var fecha, rfc;
-
-            fecha = new Date(result['cfdi:Comprobante'].$.fecha);
-            rfc = result['cfdi:Comprobante']['cfdi:Emisor'][0].$.rfc;
-            path = definePath(fecha, rfc);
-
-            console.log("Encontré el RFC: " + rfc);
-        });
-    }
 }
 
-function getExtension(ct) {
-    switch (ct) {
+function processFile(f) {
+    var ext,
+        file = new Buffer(f.Content, 'base64');
+
+    switch (f.ContentType) {
         case 'text/xml':
         case 'application/xml':
-            return 'xml';
+            processXML(file);
+            ext = 'xml';
+            break;
         case 'application/pdf':
-            return 'pdf';
+            ext = 'pdf';
+            break;
         default:
             return false;
     }
+
+    save.push({ext: ext, bin: file});
 }
 
 app.set('port', (config.port || 5000));
@@ -86,19 +79,12 @@ app.post('/recibe', function (req, res) {
     if (req.body.Attachments.length > 0) {
         console.log("El correo tiene archivos adjuntos");
 
-        req.body.Attachments.forEach(function(att){
-            console.log("Hay un: " + att.ContentType);
-            var ext = getExtension(att.ContentType);
-            if (ext) {
-                processFile(att.Content, ext);
-            }
-        });
+        req.body.Attachments.forEach(processFile);
 
         if (path) {
             save.forEach(createFile);
         } else {
-            console.log("No pudimos parsear ningún xml");
-            console.log(req.body.Attachments);
+            console.log("No pudimos parsear xmls", req.body.Attachments);
         }
     }
 
