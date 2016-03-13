@@ -5,55 +5,74 @@ var parseString = require('xml2js').parseString;
 
 var app = express();
 
-var config = require('./config.json');
+var fecha, rfc,
+save = [],
+config = require('./config.json');
 
-app.set('port', (config.port || 5000));
-
-var defineFolder = function(date) {
-    var mes = date.getMonth() + 1;
-
+function definePath(extension) {
+    var mes = fecha.getMonth() + 1;
     if (mes.toString().length == 1) {
         mes = "0" + mes;
     }
+    return '/' + fecha.getFullYear() + '-' + mes + '/' + Math.round(fecha.getTime()/1000, 0) + '-' + rfc + '.' + extension;
+}
 
-    return '/' + date.getFullYear() + '-' + mes;
-};
-
-var definePath = function(date, rfc, extension, folder) {
-    return folder + '/' + Math.round(date.getTime()/1000, 0) + '-' + rfc + '.' + extension;
-};
-
-var crearFolder = function (folder) {
-    request({
-        method: 'POST',
-        uri: 'https://api.dropboxapi.com/2/files/create_folder',
-        headers: {
-            'Authorization': 'Bearer ' + config.dropbox_key,
-            'Content-type': 'application/json'
-        },
-        body: JSON.stringify({path: folder})
-    }, function (e, r, b) {
-        console.log(b);
-    });
-};
-
-var crearArchivo = function (bin, path) {
+function createFile(file, index, array) {
     request({
         method: 'POST',
         uri: 'https://content.dropboxapi.com/2/files/upload',
         headers: {
             'Authorization': 'Bearer ' + config.dropbox_key,
             'Dropbox-API-Arg': JSON.stringify({
-                path: path,
+                path: definePath(file.extension),
                 autorename: true
             }),
             'Content-type': 'application/octet-stream'
         },
-        body: bin
+        body: file.bin
     }, function (e, r, b) {
-        console.log(b);
+        if (e) {
+            console.log(e,b);
+        } else {
+            b = JSON.parse(b);
+            console.log("Creamos el archivo: " + b.path_display);
+        }
     });
-};
+}
+
+function processFile(content, extension) {
+    var file, text;
+
+    file = new Buffer(content, 'base64');
+    text = file.toString();
+
+    save.push({
+        extension: extension,
+        bin: file
+    });
+
+    if (extension == 'xml') {
+        parseString(text, function (err, result) {
+            fecha = new Date(result['cfdi:Comprobante'].$.fecha);
+            rfc = result['cfdi:Comprobante']['cfdi:Emisor'][0].$.rfc;
+            console.log("Encontré el RFC: " + rfc);
+        });
+    }
+}
+
+function getExtension(ct) {
+    switch (ct) {
+        case 'text/xml':
+        case 'application/xml':
+            return 'xml';
+        case 'application/pdf':
+            return 'pdf';
+        default:
+            return false;
+    }
+}
+
+app.set('port', (config.port || 5000));
 
 app.use(bodyParser.json({limit: '10mb'}));
 
@@ -61,48 +80,18 @@ app.post('/recibe', function (req, res) {
     console.log("Recibimos nuevo correo");
 
     if (req.body.Attachments.length > 0) {
-        console.log("El correo tiene attachments");
-        var fecha, rfc, folder,
-        save = [];
+        console.log("El correo tiene archivos adjuntos");
 
         req.body.Attachments.forEach(function(att){
-            var file, text;
-
             console.log("Hay un: " + att.ContentType);
-
-            if (att.ContentType == 'text/xml' || att.ContentType == 'application/xml') {
-                file = new Buffer(att.Content, 'base64');
-                text = file.toString();
-
-                save.push({
-                    extension: 'xml',
-                    bin: file
-                });
-
-                parseString(text, function (err, result) {
-                    fecha = new Date(result['cfdi:Comprobante'].$.fecha);
-                    rfc = result['cfdi:Comprobante']['cfdi:Emisor'][0].$.rfc;
-                });
-            }
-
-            if (att.ContentType == 'application/pdf') {
-                file = new Buffer(att.Content, 'base64');
-
-                save.push({
-                    extension: 'pdf',
-                    bin: file
-                });
+            var ext = getExtension(att.ContentType);
+            if (ext) {
+                processFile(att.Content, ext);
             }
         });
 
         if (fecha && rfc) {
-            folder = defineFolder(fecha);
-            crearFolder(folder);
-
-            save.forEach(function(a){
-                var path = definePath(fecha, rfc, a.extension, folder);
-                crearArchivo(a.bin, path);
-            });
+            save.forEach(createFile);
         } else {
             console.log("No pudimos parsear ningún xml");
             console.log(req.body.Attachments);
