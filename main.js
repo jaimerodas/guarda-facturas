@@ -5,16 +5,16 @@ var parseString = require('xml2js').parseString;
 
 var app = express();
 
-var fecha, rfc,
+var path,
 save = [],
 config = require('./config.json');
 
-function definePath(extension) {
+function definePath(fecha, rfc) {
     var mes = fecha.getMonth() + 1;
     if (mes.toString().length == 1) {
         mes = "0" + mes;
     }
-    return '/' + fecha.getFullYear() + '-' + mes + '/' + Math.round(fecha.getTime()/1000, 0) + '-' + rfc + '.' + extension;
+    return '/' + fecha.getFullYear() + '-' + mes + '/' + Math.round(fecha.getTime()/1000, 0) + '-' + rfc + '.';
 }
 
 function createFile(file, index, array) {
@@ -24,7 +24,7 @@ function createFile(file, index, array) {
         headers: {
             'Authorization': 'Bearer ' + config.dropbox_key,
             'Dropbox-API-Arg': JSON.stringify({
-                path: definePath(file.extension),
+                path: path + file.extension,
                 autorename: true
             }),
             'Content-type': 'application/octet-stream'
@@ -53,8 +53,12 @@ function processFile(content, extension) {
 
     if (extension == 'xml') {
         parseString(text, function (err, result) {
+            var fecha, rfc;
+
             fecha = new Date(result['cfdi:Comprobante'].$.fecha);
             rfc = result['cfdi:Comprobante']['cfdi:Emisor'][0].$.rfc;
+            path = definePath(fecha, rfc);
+
             console.log("Encontré el RFC: " + rfc);
         });
     }
@@ -90,7 +94,7 @@ app.post('/recibe', function (req, res) {
             }
         });
 
-        if (fecha && rfc) {
+        if (path) {
             save.forEach(createFile);
         } else {
             console.log("No pudimos parsear ningún xml");
