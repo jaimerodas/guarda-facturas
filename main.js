@@ -88,6 +88,8 @@ app.post('/recibe', function (req, res) {
         }
     }
 
+    // Garbage collecteamos para que al siguiente correo no se cague todo
+    path = false;
     save = [];
     res.status(200).end();
 });
