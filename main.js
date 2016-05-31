@@ -88,6 +88,7 @@ app.post('/recibe', function (req, res) {
         }
     }
 
+    save = [];
     res.status(200).end();
 });
 
